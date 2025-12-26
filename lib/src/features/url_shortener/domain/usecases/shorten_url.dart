@@ -1,20 +1,19 @@
-import '../entities/shortened_link.dart';
-import '../repositories/url_shortener_repository.dart';
-import '../validators/url_validator.dart';
+import 'package:url_shortener/src/features/url_shortener/domain/entities/shortened_link.dart';
+import 'package:url_shortener/src/features/url_shortener/domain/repositories/url_shortener_repository.dart';
+import 'package:url_shortener/src/features/url_shortener/domain/validators/url_validator.dart';
 
-final class ShortenUrl {
-  final UrlShortenerRepository repository;
-  final UrlValidator validator;
+class ShortenUrl {
+  ShortenUrl({
+    required UrlShortenerRepository repository,
+    required UrlValidator validator,
+  }) : _repository = repository,
+       _validator = validator;
 
-  const ShortenUrl({
-    required this.repository,
-    required this.validator,
-  });
+  final UrlShortenerRepository _repository;
+  final UrlValidator _validator;
 
   Future<ShortenedLink> call(String url) async {
-    validator.validate(url);
-
-    final normalized = url.trim();
-    return repository.shortenUrl(url: normalized);
+    _validator.validate(url);
+    return _repository.shortenUrl(url);
   }
 }

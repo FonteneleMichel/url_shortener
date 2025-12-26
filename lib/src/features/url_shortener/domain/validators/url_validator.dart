@@ -1,26 +1,20 @@
-import '../../../../core/errors/url_validation_exception.dart';
+import 'package:url_shortener/src/core/errors/url_validation_exception.dart';
 
-final class UrlValidator {
+class UrlValidator {
   const UrlValidator();
 
-  bool isValid(String input) {
-    final value = input.trim();
-    if (value.isEmpty) return false;
+  bool isValid(String url) {
+    final uri = Uri.tryParse(url);
 
-    final uri = Uri.tryParse(value);
-    if (uri == null) return false;
-
-    final isHttp = uri.scheme == 'http' || uri.scheme == 'https';
-    if (!isHttp) return false;
-
-    if (uri.host.isEmpty) return false;
-
-    return true;
+    return uri != null &&
+        uri.hasScheme &&
+        (uri.isScheme('http') || uri.isScheme('https')) &&
+        uri.host.isNotEmpty;
   }
 
-  void validate(String input) {
-    if (!isValid(input)) {
-      throw UrlValidationException('Invalid URL: "$input"');
+  void validate(String url) {
+    if (!isValid(url)) {
+      throw const UrlValidationException('Invalid URL');
     }
   }
 }

@@ -1,23 +1,18 @@
-final class ShortenedLink {
-  final String originalUrl;
-  final String alias;
-  final DateTime createdAt;
+import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
 
+@immutable
+class ShortenedLink extends Equatable {
   const ShortenedLink({
     required this.originalUrl,
-    required this.alias,
+    required this.shortUrl,
     required this.createdAt,
   });
 
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-          other is ShortenedLink &&
-              runtimeType == other.runtimeType &&
-              originalUrl == other.originalUrl &&
-              alias == other.alias &&
-              createdAt == other.createdAt;
+  final String originalUrl;
+  final String shortUrl;
+  final DateTime createdAt;
 
   @override
-  int get hashCode => Object.hash(originalUrl, alias, createdAt);
+  List<Object?> get props => [originalUrl, shortUrl, createdAt];
 }
