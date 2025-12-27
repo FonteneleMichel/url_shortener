@@ -10,41 +10,37 @@ import 'package:url_shortener/src/features/url_shortener/presentation/cubit/url_
 
 final GetIt sl = GetIt.instance;
 
-void configureDependencies() {
+void configureDependencies({Dio? dio}) {
   sl
-    // Dio
     ..registerLazySingleton<Dio>(
-      () => Dio(
-        BaseOptions(
-          baseUrl: ApiConfig.baseUrl,
-          connectTimeout: const Duration(seconds: 10),
-          receiveTimeout: const Duration(seconds: 10),
-          sendTimeout: const Duration(seconds: 10),
-          headers: const <String, dynamic>{
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          },
-        ),
-      ),
+      () =>
+          dio ??
+          Dio(
+            BaseOptions(
+              baseUrl: ApiConfig.baseUrl,
+              connectTimeout: const Duration(seconds: 10),
+              receiveTimeout: const Duration(seconds: 10),
+              sendTimeout: const Duration(seconds: 10),
+              headers: const <String, dynamic>{
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+              },
+            ),
+          ),
     )
-    // Validator (Domain)
-    ..registerLazySingleton<UrlValidator>(UrlValidator.new)
-    // Datasource
     ..registerLazySingleton<UrlShortenerRemoteDatasource>(
-      () => UrlShortenerRemoteDatasourceImpl(sl<Dio>()),
+      () => UrlShortenerRemoteDatasourceImpl(sl()),
     )
-    // Repository (callable)
     ..registerLazySingleton<UrlShortenerRepositoryImpl>(
-      () => UrlShortenerRepositoryImpl(sl<UrlShortenerRemoteDatasource>()),
+      () => UrlShortenerRepositoryImpl(sl()),
     )
-    // Use case (agora com validator)
+    ..registerLazySingleton<UrlValidator>(() => const UrlValidator())
     ..registerLazySingleton<ShortenUrl>(
       () => ShortenUrl(
         repository: sl<UrlShortenerRepositoryImpl>(),
         validator: sl<UrlValidator>(),
       ),
     )
-    // Cubit
     ..registerFactory<UrlShortenerCubit>(
       () => UrlShortenerCubit(
         shortenUrl: ({required String url}) => sl<ShortenUrl>()(url),

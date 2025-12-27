@@ -8,6 +8,28 @@ import 'package:url_shortener/src/features/url_shortener/domain/entities/shorten
 import 'package:url_shortener/src/features/url_shortener/presentation/cubit/url_shortener_cubit.dart';
 import 'package:url_shortener/src/features/url_shortener/presentation/pages/url_shortener_page.dart';
 
+Future<void> _enterUrl(WidgetTester tester, String url) async {
+  await tester.enterText(find.byKey(const Key('url_input')), url);
+  await tester.pump();
+}
+
+Future<void> _pumpUntilButtonEnabled(
+  WidgetTester tester,
+  Finder buttonFinder, {
+  Duration timeout = const Duration(seconds: 2),
+}) async {
+  final end = DateTime.now().add(timeout);
+
+  while (DateTime.now().isBefore(end)) {
+    final button = tester.widget<ElevatedButton>(buttonFinder);
+    if (button.onPressed != null) return;
+    await tester.pump(const Duration(milliseconds: 16));
+  }
+
+  final button = tester.widget<ElevatedButton>(buttonFinder);
+  expect(button.onPressed, isNotNull);
+}
+
 void main() {
   testWidgets('render inicial (lista vazia)', (tester) async {
     final cubit = UrlShortenerCubit(
@@ -40,17 +62,14 @@ void main() {
     final initialButton = tester.widget<ElevatedButton>(buttonFinder);
     expect(initialButton.onPressed, isNull);
 
-    await tester.enterText(
-      find.byKey(const Key('url_input')),
-      'https://example.com',
-    );
-    await tester.pump();
+    await _enterUrl(tester, 'https://example.com');
+    await _pumpUntilButtonEnabled(tester, buttonFinder);
 
     final enabledButton = tester.widget<ElevatedButton>(buttonFinder);
     expect(enabledButton.onPressed, isNotNull);
   });
 
-  testWidgets('digitar URL + clicar -> mostra loading -> lista atualiza', (
+  testWidgets('happy path: shows loading, updates list, clears input', (
     tester,
   ) async {
     final completer = Completer<Either<UnexpectedFailure, ShortenedLink>>();
@@ -65,10 +84,12 @@ void main() {
 
     const url = 'https://example.com';
 
-    await tester.enterText(find.byKey(const Key('url_input')), url);
-    await tester.pump();
+    await _enterUrl(tester, url);
 
-    await tester.tap(find.byKey(const Key('shorten_button')));
+    final buttonFinder = find.byKey(const Key('shorten_button'));
+    await _pumpUntilButtonEnabled(tester, buttonFinder);
+
+    await tester.tap(buttonFinder);
     await tester.pump();
 
     expect(find.byKey(const Key('shorten_loading')), findsOneWidget);
@@ -86,8 +107,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('shorten_loading')), findsNothing);
-    expect(find.text('abc'), findsOneWidget);
     expect(find.byKey(const Key('history_list')), findsOneWidget);
+    expect(find.text('abc'), findsOneWidget);
+
+    final editable = tester.widget<EditableText>(find.byType(EditableText));
+    expect(editable.controller.text, isEmpty);
   });
 
   testWidgets('shows SnackBar when shortening fails with NetworkFailure', (
@@ -101,13 +125,12 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: UrlShortenerPage(cubit: cubit)));
     await tester.pump();
 
-    await tester.enterText(
-      find.byKey(const Key('url_input')),
-      'https://example.com',
-    );
-    await tester.pump();
+    await _enterUrl(tester, 'https://example.com');
 
-    await tester.tap(find.byKey(const Key('shorten_button')));
+    final buttonFinder = find.byKey(const Key('shorten_button'));
+    await _pumpUntilButtonEnabled(tester, buttonFinder);
+
+    await tester.tap(buttonFinder);
     await tester.pump();
     await tester.pump();
 
@@ -136,13 +159,12 @@ void main() {
       );
       await tester.pump();
 
-      await tester.enterText(
-        find.byKey(const Key('url_input')),
-        'https://example.com',
-      );
-      await tester.pump();
+      await _enterUrl(tester, 'https://example.com');
 
-      await tester.tap(find.byKey(const Key('shorten_button')));
+      final buttonFinder = find.byKey(const Key('shorten_button'));
+      await _pumpUntilButtonEnabled(tester, buttonFinder);
+
+      await tester.tap(buttonFinder);
       await tester.pump();
       await tester.pump();
 
