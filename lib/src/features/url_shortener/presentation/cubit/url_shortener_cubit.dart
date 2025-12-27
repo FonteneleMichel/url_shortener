@@ -1,13 +1,12 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_shortener/src/core/errors/failure.dart';
+import 'package:url_shortener/src/core/errors/network_failure.dart';
 import 'package:url_shortener/src/features/url_shortener/domain/entities/shortened_link.dart';
 import 'package:url_shortener/src/features/url_shortener/presentation/cubit/url_shortener_state.dart';
 
 typedef ShortenUrlFn =
-    Future<Either<Failure, ShortenedLink>> Function({
-      required String url,
-    });
+    Future<Either<Failure, ShortenedLink>> Function({required String url});
 
 typedef IsValidUrlFn = bool Function(String url);
 
@@ -17,7 +16,7 @@ class UrlShortenerCubit extends Cubit<UrlShortenerState> {
     required IsValidUrlFn isValidUrl,
   }) : _shortenUrl = shortenUrl,
        _isValidUrl = isValidUrl,
-       super(const UrlShortenerState.initial());
+       super(const UrlShortenerState());
 
   final ShortenUrlFn _shortenUrl;
   final IsValidUrlFn _isValidUrl;
@@ -26,11 +25,20 @@ class UrlShortenerCubit extends Cubit<UrlShortenerState> {
 
   Future<void> shorten({required String url}) async {
     if (!_isValidUrl(url)) {
+      emit(
+        state.copyWith(
+          isLoading: false,
+          failure: const BadRequestFailure(),
+        ),
+      );
       return;
     }
 
     emit(
-      state.copyWith(status: UrlShortenerStatus.loading, clearFailure: true),
+      state.copyWith(
+        isLoading: true,
+        clearFailure: true,
+      ),
     );
 
     final result = await _shortenUrl(url: url);
@@ -39,7 +47,7 @@ class UrlShortenerCubit extends Cubit<UrlShortenerState> {
       (failure) {
         emit(
           state.copyWith(
-            status: UrlShortenerStatus.idle,
+            isLoading: false,
             failure: failure,
           ),
         );
@@ -48,7 +56,7 @@ class UrlShortenerCubit extends Cubit<UrlShortenerState> {
         final updatedHistory = <ShortenedLink>[link, ...state.history];
         emit(
           state.copyWith(
-            status: UrlShortenerStatus.idle,
+            isLoading: false,
             history: updatedHistory,
             clearFailure: true,
           ),
@@ -58,4 +66,13 @@ class UrlShortenerCubit extends Cubit<UrlShortenerState> {
   }
 
   void clearFailure() => emit(state.copyWith(clearFailure: true));
+
+  void clearHistory() {
+    emit(
+      state.copyWith(
+        history: const <ShortenedLink>[],
+        clearFailure: true,
+      ),
+    );
+  }
 }

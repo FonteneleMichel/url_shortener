@@ -7,7 +7,7 @@ String failureMessage(Failure failure) {
   }
 
   if (failure is BadRequestFailure) {
-    return 'Invalid URL. Please check and try again.';
+    return 'Invalid URL. Please try again.';
   }
 
   return 'Unexpected error. Please try again.';

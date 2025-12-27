@@ -12,8 +12,7 @@ class UrlShortenerPage extends StatefulWidget {
     this.cubit,
   });
 
-  /// Permite injeção direta.
-  /// No app/testes atuais, o Cubit vem via BlocProvider acima.
+  /// Permite injeção direta em testes (opcional).
   final UrlShortenerCubit? cubit;
 
   @override
@@ -29,10 +28,44 @@ class _UrlShortenerPageState extends State<UrlShortenerPage> {
     super.dispose();
   }
 
-  void _showErrorSnackBar(BuildContext context, String message) {
+  void _showSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _confirmAndClearHistory(
+    BuildContext context,
+    UrlShortenerCubit cubit,
+  ) async {
+    final shouldClear = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Clear history?'),
+          content: const Text('This will remove all shortened links.'),
+          actions: [
+            TextButton(
+              key: const Key('cancel_clear_history'),
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              key: const Key('confirm_clear_history'),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Clear'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!context.mounted) return;
+
+    if (shouldClear ?? false) {
+      cubit.clearHistory();
+      _showSnackBar(context, 'History cleared.');
+    }
   }
 
   @override
@@ -48,7 +81,7 @@ class _UrlShortenerPageState extends State<UrlShortenerPage> {
             final failure = state.failure;
             if (failure == null) return;
 
-            _showErrorSnackBar(context, failureMessage(failure));
+            _showSnackBar(context, failureMessage(failure));
             context.read<UrlShortenerCubit>().clearFailure();
           },
         ),
@@ -66,8 +99,23 @@ class _UrlShortenerPageState extends State<UrlShortenerPage> {
         builder: (context, state) {
           final cubit = context.read<UrlShortenerCubit>();
 
+          final canClearHistory = state.history.isNotEmpty && !state.isLoading;
+          final onClearHistoryPressed = canClearHistory
+              ? () => _confirmAndClearHistory(context, cubit)
+              : null;
+
           return Scaffold(
-            appBar: AppBar(title: const Text('URL Shortener')),
+            appBar: AppBar(
+              title: const Text('URL Shortener'),
+              actions: [
+                IconButton(
+                  key: const Key('clear_history_button'),
+                  tooltip: 'Clear history',
+                  onPressed: onClearHistoryPressed,
+                  icon: const Icon(Icons.delete_outline),
+                ),
+              ],
+            ),
             body: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.all(16),
