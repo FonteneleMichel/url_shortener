@@ -1,23 +1,22 @@
+import 'package:equatable/equatable.dart';
 import 'package:url_shortener/src/features/url_shortener/domain/entities/shortened_link.dart';
 
-class AliasResponseModel {
-  const AliasResponseModel({
-    required this.alias,
-  });
+class AliasResponseModel extends Equatable {
+  const AliasResponseModel({required this.alias});
 
   factory AliasResponseModel.fromJson(Map<String, dynamic> json) {
-    final dynamic aliasValue = json['alias'];
-
-    if (aliasValue is! String || aliasValue.isEmpty) {
-      throw const FormatException('Invalid alias response: "alias" is missing');
+    final value = json['alias'];
+    if (value is! String) {
+      throw const FormatException('Invalid alias field');
     }
-
-    return AliasResponseModel(alias: aliasValue);
+    return AliasResponseModel(alias: value);
   }
 
   final String alias;
 
-  Map<String, dynamic> toJson() => <String, dynamic>{'alias': alias};
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'alias': alias,
+  };
 
   ShortenedLink toEntity({
     required String originalUrl,
@@ -29,4 +28,7 @@ class AliasResponseModel {
       createdAt: createdAt,
     );
   }
+
+  @override
+  List<Object?> get props => <Object?>[alias];
 }
