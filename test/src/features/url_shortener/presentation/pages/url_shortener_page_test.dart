@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +9,20 @@ import 'package:url_shortener/src/features/url_shortener/presentation/cubit/url_
 import 'package:url_shortener/src/features/url_shortener/presentation/pages/url_shortener_page.dart';
 
 void main() {
+  testWidgets('render inicial (lista vazia)', (tester) async {
+    final cubit = UrlShortenerCubit(
+      shortenUrl: ({required String url}) async =>
+          const Left(UnexpectedFailure()),
+      isValidUrl: (_) => false,
+    );
+
+    await tester.pumpWidget(MaterialApp(home: UrlShortenerPage(cubit: cubit)));
+    await tester.pump();
+
+    expect(find.byKey(const Key('empty_state')), findsOneWidget);
+    expect(find.byKey(const Key('history_list')), findsNothing);
+  });
+
   testWidgets('button disabled when url invalid; enabled when valid', (
     tester,
   ) async {
@@ -16,11 +32,8 @@ void main() {
       isValidUrl: (url) => url.startsWith('https://'),
     );
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: UrlShortenerPage(cubit: cubit),
-      ),
-    );
+    await tester.pumpWidget(MaterialApp(home: UrlShortenerPage(cubit: cubit)));
+    await tester.pump();
 
     final buttonFinder = find.byKey(const Key('shorten_button'));
 
@@ -37,36 +50,42 @@ void main() {
     expect(enabledButton.onPressed, isNotNull);
   });
 
-  testWidgets('happy path: shortening adds item to list', (tester) async {
+  testWidgets('digitar URL + clicar -> mostra loading -> lista atualiza', (
+    tester,
+  ) async {
+    final completer = Completer<Either<UnexpectedFailure, ShortenedLink>>();
+
     final cubit = UrlShortenerCubit(
-      shortenUrl: ({required String url}) async {
-        return Right(
-          ShortenedLink(
-            originalUrl: url,
-            alias: 'abc',
-            createdAt: DateTime(2025, 12, 27, 10),
-          ),
-        );
-      },
+      shortenUrl: ({required String url}) => completer.future,
       isValidUrl: (_) => true,
     );
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: UrlShortenerPage(cubit: cubit),
-      ),
-    );
+    await tester.pumpWidget(MaterialApp(home: UrlShortenerPage(cubit: cubit)));
+    await tester.pump();
 
-    await tester.enterText(
-      find.byKey(const Key('url_input')),
-      'https://example.com',
-    );
+    const url = 'https://example.com';
+
+    await tester.enterText(find.byKey(const Key('url_input')), url);
     await tester.pump();
 
     await tester.tap(find.byKey(const Key('shorten_button')));
     await tester.pump();
-    await tester.pump();
 
+    expect(find.byKey(const Key('shorten_loading')), findsOneWidget);
+
+    completer.complete(
+      Right<UnexpectedFailure, ShortenedLink>(
+        ShortenedLink(
+          originalUrl: url,
+          alias: 'abc',
+          createdAt: DateTime(2025, 12, 27, 10),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('shorten_loading')), findsNothing);
     expect(find.text('abc'), findsOneWidget);
     expect(find.byKey(const Key('history_list')), findsOneWidget);
   });
@@ -79,11 +98,8 @@ void main() {
       isValidUrl: (_) => true,
     );
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: UrlShortenerPage(cubit: cubit),
-      ),
-    );
+    await tester.pumpWidget(MaterialApp(home: UrlShortenerPage(cubit: cubit)));
+    await tester.pump();
 
     await tester.enterText(
       find.byKey(const Key('url_input')),
@@ -116,12 +132,10 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: UrlShortenerPage(cubit: cubit),
-        ),
+        MaterialApp(home: UrlShortenerPage(cubit: cubit)),
       );
+      await tester.pump();
 
-      // create one item
       await tester.enterText(
         find.byKey(const Key('url_input')),
         'https://example.com',
@@ -134,13 +148,11 @@ void main() {
 
       expect(find.text('abc'), findsOneWidget);
 
-      // open clear dialog
       await tester.tap(find.byKey(const Key('clear_history_button')));
       await tester.pumpAndSettle();
 
       expect(find.text('Clear history?'), findsOneWidget);
 
-      // confirm
       await tester.tap(find.text('Clear'));
       await tester.pumpAndSettle();
 

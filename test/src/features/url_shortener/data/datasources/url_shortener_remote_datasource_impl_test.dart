@@ -3,56 +3,74 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:url_shortener/src/core/errors/infrastructure_exceptions.dart';
 import 'package:url_shortener/src/features/url_shortener/data/datasources/url_shortener_remote_datasource_impl.dart';
+import 'package:url_shortener/src/features/url_shortener/data/models/alias_response_model.dart';
 
 class _DioMock extends Mock implements Dio {}
 
 void main() {
-  group('UrlShortenerRemoteDatasourceImpl', () {
-    late Dio dio;
-    late UrlShortenerRemoteDatasourceImpl datasource;
+  late Dio dio;
+  late UrlShortenerRemoteDatasourceImpl datasource;
 
-    setUp(() {
-      dio = _DioMock();
-      datasource = UrlShortenerRemoteDatasourceImpl(dio);
-    });
+  setUp(() {
+    dio = _DioMock();
+    datasource = UrlShortenerRemoteDatasourceImpl(dio);
+  });
+
+  group('UrlShortenerRemoteDatasourceImpl', () {
+    const url = 'https://google.com';
 
     test('POST /api/alias returns model', () async {
-      const url = 'https://google.com';
-
       when(
         () => dio.post<dynamic>(
-          '/api/alias',
-          data: <String, dynamic>{'url': url},
+          any(),
+          data: any(named: 'data'),
+          queryParameters: any(named: 'queryParameters'),
+          options: any(named: 'options'),
+          cancelToken: any(named: 'cancelToken'),
+          onSendProgress: any(named: 'onSendProgress'),
+          onReceiveProgress: any(named: 'onReceiveProgress'),
         ),
       ).thenAnswer(
         (_) async => Response<dynamic>(
           requestOptions: RequestOptions(path: '/api/alias'),
-          statusCode: 200,
-          data: <String, dynamic>{'alias': 'abc'},
+          statusCode: 201,
+          data: const <String, dynamic>{'alias': 'abc'},
         ),
       );
 
       final result = await datasource.createAlias(url: url);
-      expect(result.alias, 'abc');
+
+      expect(result, const AliasResponseModel(alias: 'abc'));
+
+      verify(
+        () => dio.post<dynamic>(
+          '/api/alias',
+          data: const <String, dynamic>{'url': url},
+          queryParameters: any(named: 'queryParameters'),
+          options: any(named: 'options'),
+          cancelToken: any(named: 'cancelToken'),
+          onSendProgress: any(named: 'onSendProgress'),
+          onReceiveProgress: any(named: 'onReceiveProgress'),
+        ),
+      ).called(1);
     });
 
     test('maps 400 to BadRequestException', () async {
-      const url = 'not-a-url';
-
       when(
         () => dio.post<dynamic>(
-          '/api/alias',
-          data: <String, dynamic>{'url': url},
+          any(),
+          data: any(named: 'data'),
+          queryParameters: any(named: 'queryParameters'),
+          options: any(named: 'options'),
+          cancelToken: any(named: 'cancelToken'),
+          onSendProgress: any(named: 'onSendProgress'),
+          onReceiveProgress: any(named: 'onReceiveProgress'),
         ),
-      ).thenThrow(
-        DioException(
+      ).thenAnswer(
+        (_) async => Response<dynamic>(
           requestOptions: RequestOptions(path: '/api/alias'),
-          response: Response<dynamic>(
-            requestOptions: RequestOptions(path: '/api/alias'),
-            statusCode: 400,
-            data: <String, dynamic>{'message': 'Invalid url'},
-          ),
-          type: DioExceptionType.badResponse,
+          statusCode: 400,
+          data: const <String, dynamic>{},
         ),
       );
 
@@ -63,18 +81,21 @@ void main() {
     });
 
     test('maps connectionError to NetworkException', () async {
-      const url = 'https://google.com';
-
       when(
         () => dio.post<dynamic>(
-          '/api/alias',
-          data: <String, dynamic>{'url': url},
+          any(),
+          data: any(named: 'data'),
+          queryParameters: any(named: 'queryParameters'),
+          options: any(named: 'options'),
+          cancelToken: any(named: 'cancelToken'),
+          onSendProgress: any(named: 'onSendProgress'),
+          onReceiveProgress: any(named: 'onReceiveProgress'),
         ),
       ).thenThrow(
         DioException(
           requestOptions: RequestOptions(path: '/api/alias'),
           type: DioExceptionType.connectionError,
-          message: 'No internet',
+          message: 'connection error',
         ),
       );
 

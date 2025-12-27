@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_shortener/src/features/url_shortener/presentation/cubit/url_shortener_cubit.dart';
@@ -12,7 +14,6 @@ class UrlShortenerPage extends StatefulWidget {
     this.cubit,
   });
 
-  /// Permite injeção direta em testes (opcional).
   final UrlShortenerCubit? cubit;
 
   @override
@@ -70,7 +71,7 @@ class _UrlShortenerPageState extends State<UrlShortenerPage> {
 
   @override
   Widget build(BuildContext context) {
-    final page = MultiBlocListener(
+    final content = MultiBlocListener(
       listeners: [
         BlocListener<UrlShortenerCubit, UrlShortenerState>(
           listenWhen: (previous, current) {
@@ -125,9 +126,9 @@ class _UrlShortenerPageState extends State<UrlShortenerPage> {
                       controller: _controller,
                       isLoading: state.isLoading,
                       isValidUrl: cubit.isValid,
-                      onShortenPressed: () async {
+                      onShortenPressed: () {
                         final url = _controller.text.trim();
-                        await cubit.shorten(url: url);
+                        unawaited(cubit.shorten(url: url));
                       },
                     ),
                     const SizedBox(height: 16),
@@ -144,11 +145,11 @@ class _UrlShortenerPageState extends State<UrlShortenerPage> {
     );
 
     final injectedCubit = widget.cubit;
-    if (injectedCubit == null) return page;
+    if (injectedCubit == null) return content;
 
     return BlocProvider<UrlShortenerCubit>.value(
       value: injectedCubit,
-      child: page,
+      child: content,
     );
   }
 }

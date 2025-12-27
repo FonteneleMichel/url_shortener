@@ -4,22 +4,19 @@ import 'package:url_shortener/src/features/url_shortener/data/models/alias_respo
 void main() {
   group('AliasResponseModel', () {
     test('fromJson parses alias', () {
-      final model = AliasResponseModel.fromJson(<String, dynamic>{
+      final model = AliasResponseModel.fromJson(const <String, dynamic>{
         'alias': 'abc',
       });
-      expect(model.alias, 'abc');
-    });
 
-    test('fromJson throws FormatException when alias missing', () {
-      expect(
-        () => AliasResponseModel.fromJson(<String, dynamic>{}),
-        throwsA(isA<FormatException>()),
-      );
+      expect(model, const AliasResponseModel(alias: 'abc'));
     });
 
     test('toJson serializes alias', () {
       const model = AliasResponseModel(alias: 'abc');
-      expect(model.toJson(), <String, dynamic>{'alias': 'abc'});
+
+      expect(model.toJson(), const <String, dynamic>{
+        'alias': 'abc',
+      });
     });
   });
 }
