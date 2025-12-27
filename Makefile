@@ -1,7 +1,8 @@
-.PHONY: pub format analyze test check
+.PHONY: check check-ci format analyze test test-ci
 
-pub:
-	flutter pub get
+check: format analyze test
+
+check-ci: format analyze test-ci
 
 format:
 	dart format .
@@ -10,6 +11,7 @@ analyze:
 	flutter analyze --no-pub
 
 test:
-	flutter test --no-pub
+	flutter test --no-pub --exclude-tags golden
 
-check: pub format analyze test
+test-ci:
+	flutter test --no-pub
