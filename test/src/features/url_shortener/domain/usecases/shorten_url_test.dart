@@ -1,67 +1,82 @@
+import 'package:dartz/dartz.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
+import 'package:url_shortener/src/core/errors/failure.dart';
 import 'package:url_shortener/src/core/errors/url_validation_exception.dart';
 import 'package:url_shortener/src/features/url_shortener/domain/entities/shortened_link.dart';
 import 'package:url_shortener/src/features/url_shortener/domain/repositories/url_shortener_repository.dart';
 import 'package:url_shortener/src/features/url_shortener/domain/usecases/shorten_url.dart';
 import 'package:url_shortener/src/features/url_shortener/domain/validators/url_validator.dart';
 
-class _MockUrlShortenerRepository extends Mock
-    implements UrlShortenerRepository {}
+class _MockUrlShortenerRepository extends Mock {
+  Future<Either<Failure, ShortenedLink>> call({required String url});
+}
 
 class _MockUrlValidator extends Mock implements UrlValidator {}
 
 void main() {
+  late _MockUrlShortenerRepository repositoryMock;
   late UrlShortenerRepository repository;
   late UrlValidator validator;
   late ShortenUrl usecase;
 
   setUp(() {
-    repository = _MockUrlShortenerRepository();
+    repositoryMock = _MockUrlShortenerRepository();
+    repository = repositoryMock.call; // evita implicit_call_tearoffs
     validator = _MockUrlValidator();
     usecase = ShortenUrl(repository: repository, validator: validator);
   });
 
-  test('does not call repository when url is invalid', () async {
-    when(() => validator.validate(any())).thenThrow(
-      const UrlValidationException('Invalid URL'),
-    );
+  test(
+    'returns Left(InvalidUrlFailure) and does not call repository '
+    'when url is invalid',
+    () async {
+      when(() => validator.isValid(any())).thenReturn(false);
 
-    expect(
-      () => usecase('not-a-url'),
-      throwsA(isA<UrlValidationException>()),
-    );
+      final result = await usecase('not-a-url');
 
-    verify(() => validator.validate('not-a-url')).called(1);
-    verifyNever(() => repository.shortenUrl(any()));
-  });
+      expect(result.isLeft(), isTrue);
+
+      result.fold(
+        (failure) => expect(failure, isA<InvalidUrlFailure>()),
+        (_) => fail('Expected Left, got Right'),
+      );
+
+      verify(() => validator.isValid('not-a-url')).called(1);
+      verifyNever(() => repositoryMock.call(url: any(named: 'url')));
+      verifyNoMoreInteractions(repositoryMock);
+    },
+  );
 
   test(
-    'calls repository and returns shortened link when url is valid',
+    'calls repository and returns Right(ShortenedLink) when url is valid',
     () async {
       const inputUrl = 'https://example.com';
-
-      // Use non-default month/day to avoid avoid_redundant_argument_values lint.
       final now = DateTime(2025, 12, 31);
 
       final expected = ShortenedLink(
         originalUrl: inputUrl,
-        shortUrl: 'https://short.ly/abc123',
+        alias: 'abc123',
         createdAt: now,
       );
 
-      when(() => validator.validate(any())).thenReturn(null);
-      when(
-        () => repository.shortenUrl(any()),
-      ).thenAnswer((_) async => expected);
+      when(() => validator.isValid(any())).thenReturn(true);
+      when(() => repositoryMock.call(url: any(named: 'url'))).thenAnswer(
+        (_) async => Right<Failure, ShortenedLink>(expected),
+      );
 
       final result = await usecase(inputUrl);
 
-      expect(result, expected);
+      expect(result.isRight(), isTrue);
 
-      verify(() => validator.validate(inputUrl)).called(1);
-      verify(() => repository.shortenUrl(inputUrl)).called(1);
-      verifyNoMoreInteractions(repository);
+      result.fold(
+        (failure) => fail('Expected Right, got Left: $failure'),
+        (value) => expect(value, expected),
+      );
+
+      verify(() => validator.isValid(inputUrl)).called(1);
+      verify(() => repositoryMock.call(url: inputUrl)).called(1);
+      verifyNoMoreInteractions(repositoryMock);
     },
   );
 }
