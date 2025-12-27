@@ -1,7 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:url_shortener/src/core/errors/failure.dart';
-import 'package:url_shortener/src/core/errors/failures.dart';
 import 'package:url_shortener/src/core/errors/infrastructure_exceptions.dart';
+import 'package:url_shortener/src/core/errors/network_failure.dart';
 import 'package:url_shortener/src/features/url_shortener/data/datasources/url_shortener_remote_datasource.dart';
 import 'package:url_shortener/src/features/url_shortener/domain/entities/shortened_link.dart';
 
