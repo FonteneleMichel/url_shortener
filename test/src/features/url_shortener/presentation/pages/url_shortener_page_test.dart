@@ -2,7 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:url_shortener/src/core/errors/failures.dart';
+import 'package:url_shortener/src/core/errors/network_failure.dart';
 import 'package:url_shortener/src/features/url_shortener/domain/entities/shortened_link.dart';
 import 'package:url_shortener/src/features/url_shortener/presentation/cubit/url_shortener_cubit.dart';
 import 'package:url_shortener/src/features/url_shortener/presentation/pages/url_shortener_page.dart';
