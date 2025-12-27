@@ -1,15 +1,132 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_shortener/src/core/errors/failure.dart';
+import 'package:url_shortener/src/core/errors/failures.dart';
+import 'package:url_shortener/src/features/url_shortener/presentation/cubit/url_shortener_cubit.dart';
+import 'package:url_shortener/src/features/url_shortener/presentation/cubit/url_shortener_state.dart';
+import 'package:url_shortener/src/features/url_shortener/presentation/widgets/history_item.dart';
 
-class UrlShortenerPage extends StatelessWidget {
+class UrlShortenerPage extends StatefulWidget {
   const UrlShortenerPage({super.key});
 
   @override
+  State<UrlShortenerPage> createState() => _UrlShortenerPageState();
+}
+
+class _UrlShortenerPageState extends State<UrlShortenerPage> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('URL Shortener')),
-      body: const Center(
-        child: Text('TODO: Implement UI (input + history list)'),
-      ),
+    return BlocConsumer<UrlShortenerCubit, UrlShortenerState>(
+      listenWhen: (prev, curr) =>
+          prev.failure != curr.failure && curr.failure != null,
+      listener: (context, state) {
+        final message = _failureMessage(state.failure!);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+        context.read<UrlShortenerCubit>().clearFailure();
+      },
+      builder: (context, state) {
+        final cubit = context.read<UrlShortenerCubit>();
+        final url = _controller.text.trim();
+        final canSubmit = !state.isLoading && cubit.isValid(url);
+
+        Future<void> submit() async {
+          final currentUrl = _controller.text.trim();
+          final focusNode = FocusScope.of(context);
+
+          await cubit.shorten(url: currentUrl);
+
+          if (!mounted) {
+            return;
+          }
+          focusNode.unfocus();
+        }
+
+        return Scaffold(
+          appBar: AppBar(title: const Text('URL Shortener')),
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: <Widget>[
+                TextField(
+                  key: const Key('url_input'),
+                  controller: _controller,
+                  keyboardType: TextInputType.url,
+                  textInputAction: TextInputAction.done,
+                  decoration: const InputDecoration(
+                    labelText: 'Paste a URL',
+                    hintText: 'https://example.com',
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                  onSubmitted: (_) async {
+                    if (!canSubmit) {
+                      return;
+                    }
+                    await submit();
+                  },
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    key: const Key('shorten_button'),
+                    onPressed: canSubmit ? submit : null,
+                    child: state.isLoading
+                        ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Shorten'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: state.history.isEmpty
+                      ? const Center(child: Text('No links yet'))
+                      : ListView.builder(
+                          key: const Key('history_list'),
+                          itemCount: state.history.length,
+                          itemBuilder: (context, index) {
+                            final item = state.history[index];
+                            return HistoryItem(
+                              link: item,
+                              onCopy: () => HistoryItem.copyToClipboard(
+                                context,
+                                item.alias,
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
+  }
+
+  String _failureMessage(Failure failure) {
+    if (failure is NetworkFailure) {
+      return 'Network error. Check your connection.';
+    }
+    if (failure is BadRequestFailure) {
+      return 'Invalid URL.';
+    }
+    if (failure is UnexpectedFailure) {
+      return 'Unexpected error.';
+    }
+    return 'Something went wrong.';
   }
 }
