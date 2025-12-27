@@ -28,7 +28,7 @@ void main() {
 
       configureDependencies(dio: dio);
 
-      final cubit = sl<UrlShortenerCubit>();
+      final cubit = sl.get<UrlShortenerCubit>();
 
       await cubit.shorten(url: 'https://example.com');
 

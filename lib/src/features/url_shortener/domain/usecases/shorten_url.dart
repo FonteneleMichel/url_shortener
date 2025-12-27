@@ -14,7 +14,7 @@ class ShortenUrl {
   final UrlShortenerRepository repository;
   final UrlValidator validator;
 
-  Future<Either<Failure, ShortenedLink>> call(String url) async {
+  Future<Either<Failure, ShortenedLink>> call({required String url}) async {
     final trimmed = url.trim();
 
     if (!validator.isValid(trimmed)) {
