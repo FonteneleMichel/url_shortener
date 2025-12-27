@@ -22,7 +22,7 @@ void main() {
 
   setUp(() {
     repositoryMock = _MockUrlShortenerRepository();
-    repository = repositoryMock.call; // evita implicit_call_tearoffs
+    repository = repositoryMock.call;
     validator = _MockUrlValidator();
     usecase = ShortenUrl(repository: repository, validator: validator);
   });
@@ -33,7 +33,7 @@ void main() {
     () async {
       when(() => validator.isValid(any())).thenReturn(false);
 
-      final result = await usecase('not-a-url');
+      final result = await usecase.call(url: 'not-a-url');
 
       expect(result.isLeft(), isTrue);
 
@@ -65,7 +65,7 @@ void main() {
         (_) async => Right<Failure, ShortenedLink>(expected),
       );
 
-      final result = await usecase(inputUrl);
+      final result = await usecase.call(url: inputUrl);
 
       expect(result.isRight(), isTrue);
 
