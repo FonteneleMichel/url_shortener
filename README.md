@@ -49,6 +49,12 @@ This repository uses a single command to enforce formatting, static analysis, an
 
     make check
 
+## Golden tests
+
+This project includes golden tests for UI regression.
+
+Run all checks (format + analyze + tests):
+
 What it does (high-level):
 
 - `flutter pub get`
